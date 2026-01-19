@@ -209,8 +209,18 @@ export default function Dashboard({
                               <li key={j}>
                                 {typeof task === "object"
                                   ? task.day
-                                    ? `${task.day}: ${task.task}`
-                                    : task.task || JSON.stringify(task)
+                                    ? `${task.day}: ${
+                                        task.task ||
+                                        task.content ||
+                                        task.description ||
+                                        task.activity ||
+                                        JSON.stringify(task)
+                                      }`
+                                    : task.task ||
+                                      task.content ||
+                                      task.description ||
+                                      task.activity ||
+                                      JSON.stringify(task)
                                   : task}
                               </li>
                             ))}

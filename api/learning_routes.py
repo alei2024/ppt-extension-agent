@@ -30,7 +30,7 @@ import re
 @learning_router.post("/plan/generate")
 async def generate_plan(req: PlanRequest, current_user: dict = Depends(get_current_user)):
     llm = create_llm()
-    prompt = f"为用户生成个性化学习计划，主题：{req.topic}，周期：{req.weeks}周，水平：{req.level}。分解为每周目标、每日任务、资料链接与练习题，输出JSON格式，不要包含Markdown标记：{{\"weeks\":[{{\"week\":1,\"targets\":[],\"daily_tasks\":[]}}],\"resources\":[],\"evaluation\":[]}}"
+    prompt = f"为用户生成个性化学习计划，主题：{req.topic}，周期：{req.weeks}周，水平：{req.level}。分解为每周目标、每日任务、资料链接与练习题，输出JSON格式，不要包含Markdown标记。JSON结构示例：{{\"weeks\":[{{\"week\":1,\"targets\":[\"目标1\"],\"daily_tasks\":[{{\"day\": 1, \"task\": \"任务内容\"}}]}}],\"resources\":[],\"evaluation\":[]}}"
     resp = llm.invoke(prompt)
     
     # 清理可能的Markdown代码块标记
