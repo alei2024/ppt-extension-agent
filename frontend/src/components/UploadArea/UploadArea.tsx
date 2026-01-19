@@ -66,6 +66,15 @@ function UploadArea({ onUpload }: UploadAreaProps) {
       }
 
       const data = await response.json()
+      console.log('=== API返回的完整数据 ===', data)
+      console.log('=== ppt_data ===', data.ppt_data)
+      if (data.ppt_data && data.ppt_data.slides && data.ppt_data.slides.length > 0) {
+        console.log('=== 第1页数据 ===', data.ppt_data.slides[0])
+        console.log('=== 第1页图片数量 ===', data.ppt_data.slides[0].images?.length || 0)
+        if (data.ppt_data.slides[0].images && data.ppt_data.slides[0].images.length > 0) {
+          console.log('=== 第1个图片 ===', data.ppt_data.slides[0].images[0])
+        }
+      }
       onUpload(data.ppt_data)
     } catch (error) {
       console.error('Upload failed:', error)

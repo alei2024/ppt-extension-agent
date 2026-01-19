@@ -5,9 +5,14 @@ PPT内容扩展智能体的核心API服务
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from api.routes import router
+from api.auth_routes import auth_router
+from api.learning_routes import learning_router
 import logging
+import os
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,8 +20,8 @@ logger = logging.getLogger(__name__)
 # 创建FastAPI应用实例
 app = FastAPI(
     title="PPT内容扩展智能体",
-    description="基于云原生架构和LLM Agent的PPT学习助手系统",
-    version="0.1.0",
+    description="基于云原生架构和LLM Agent的PPT学习助手系统（整合版）",
+    version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -32,6 +37,18 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(router, prefix="/api/v1", tags=["PPT扩展"])
+app.include_router(auth_router, prefix="/api/v1", tags=["用户认证"])
+app.include_router(learning_router, prefix="/api/v1", tags=["学习计划"])
+
+# 确保上传目录存在
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("uploads/references", exist_ok=True)
+os.makedirs("uploads/images", exist_ok=True)
+
+# 挂载静态文件目录（用于访问上传的图片）
+uploads_dir = Path("./uploads")
+uploads_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 
 @app.get("/")

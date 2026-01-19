@@ -15,13 +15,16 @@ ENV PYTHONUNBUFFERED=1 \
 # 配置 pip 使用国内镜像源（加速依赖安装）
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 使用国内镜像源（清华源）并安装系统依赖
+# 使用国内镜像源（清华源）并安装系统依赖（包含tesseract OCR）
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     libmagic1 \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
