@@ -397,3 +397,40 @@ def get_multi_source_integration_prompt(
 - 确保整合后的内容逻辑清晰
 """
     return prompt
+
+
+def get_image_description_prompt(ocr_text: str, page_number: int = None) -> str:
+    """
+    获取图片描述的Prompt
+    
+    Args:
+        ocr_text: OCR识别的文字内容
+        page_number: 页码
+        
+    Returns:
+        图片描述Prompt
+    """
+    page_context = f"这是PPT第{page_number}页的图片。" if page_number else "这是PPT中的一张图片。"
+    
+    prompt = f"""你是一位专业的图片内容分析专家。请根据OCR识别的文字内容，为以下图片生成详细的内容描述。
+
+{page_context}
+
+**OCR识别的文字内容**:
+{ocr_text if ocr_text else "未识别到文字"}
+
+**要求**:
+1. 如果识别到文字，请总结文字的主要内容
+2. 推断图片可能的类型（图表、流程图、示意图、照片等）
+3. 描述图片在PPT中可能的作用和意义
+4. 如果图片包含数据或图表，请描述关键信息
+5. 使用简洁清晰的语言，控制在200字以内
+
+**输出格式**:
+直接输出图片描述，不需要JSON格式。
+
+**示例**:
+如果OCR识别到"机器学习流程图"和"监督学习 -> 无监督学习 -> 强化学习"，可以描述为：
+"这是一张机器学习流程图，展示了三种主要的学习方式：监督学习、无监督学习和强化学习。图片可能用于说明机器学习的基本分类。"
+"""
+    return prompt

@@ -18,6 +18,7 @@ services:
       - ./uploads:/app/uploads
       - ./output:/app/output
       - ./logs:/app/logs
+      - ./uploads/images:/app/uploads/images
     depends_on:
       - redis
       - milvus-standalone
@@ -56,6 +57,7 @@ services:
     networks:
       - ppt-agent-network
     restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
 
   # etcd（Milvus依赖）
   etcd:

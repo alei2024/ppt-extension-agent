@@ -5,9 +5,11 @@ PPT内容扩展智能体的核心API服务
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from api.routes import router
 import logging
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +34,11 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(router, prefix="/api/v1", tags=["PPT扩展"])
+
+# 挂载静态文件目录（用于访问上传的图片）
+uploads_dir = Path("./uploads")
+uploads_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 
 @app.get("/")

@@ -56,8 +56,25 @@ class KnowledgeExpander:
         try:
             logger.info(f"开始扩充知识点: {title}")
             
+            # 如果context中包含图片信息，将其添加到content中
+            enhanced_content = content
+            if context and "images" in context:
+                images = context["images"]
+                if images:
+                    image_info = []
+                    for img in images:
+                        desc = img.get("description", "")
+                        ocr_text = img.get("ocr_text", "")
+                        if desc:
+                            image_info.append(f"[图片内容: {desc}]")
+                        elif ocr_text:
+                            image_info.append(f"[图片文字: {ocr_text}]")
+                    
+                    if image_info:
+                        enhanced_content = content + "\n\n同页面相关图片信息:\n" + "\n".join(image_info)
+            
             context_str = self._format_context(context)
-            prompt = get_expansion_prompt(title, content, context_str)
+            prompt = get_expansion_prompt(title, enhanced_content, context_str)
             
             response = self.llm.invoke(prompt)
             expanded_content = self._parse_expansion_response(response.content)
@@ -174,6 +191,22 @@ class KnowledgeExpander:
             context_parts.append(f"前置知识点: {', '.join(context['previous_points'])}")
         if "page_number" in context:
             context_parts.append(f"所在页码: {context['page_number']}")
+        
+        # 添加图片信息
+        if "images" in context:
+            images = context["images"]
+            if images:
+                image_descriptions = []
+                for img in images:
+                    desc = img.get("description", "")
+                    ocr_text = img.get("ocr_text", "")
+                    if desc:
+                        image_descriptions.append(f"图片描述: {desc}")
+                    elif ocr_text:
+                        image_descriptions.append(f"图片文字: {ocr_text}")
+                
+                if image_descriptions:
+                    context_parts.append("同页面图片信息:\n" + "\n".join(image_descriptions))
         
         return "\n".join(context_parts) if context_parts else "无"
     

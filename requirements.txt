@@ -20,6 +20,10 @@ unstructured[pdf]>=0.11.0
 pdf2image>=1.16.0
 Pillow>=10.1.0
 
+# 图片识别（OCR）
+pytesseract>=0.3.10
+#easyocr>=1.7.0  # 可选：如果pytesseract不可用，可以使用easyocr
+
 # 向量数据库
 pymilvus>=2.3.0
 # pinecone-client>=3.0.0  # 可选：使用Pinecone替代Milvus

@@ -1,0 +1,4 @@
+Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple
+Requirement already satisfied: pytesseract in d:\conda_envs\api2\lib\site-packages (0.3.13)
+Requirement already satisfied: packaging>=21.3 in c:\users\alei\appdata\roaming\python\python310\site-packages (from pytesseract) (25.0)
+Requirement already satisfied: Pillow>=8.0.0 in d:\conda_envs\api2\lib\site-packages (from pytesseract) (12.1.0)

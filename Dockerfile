@@ -15,13 +15,16 @@ ENV PYTHONUNBUFFERED=1 \
 # 配置 pip 使用国内镜像源（加速依赖安装）
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 使用国内镜像源（清华源）并安装系统依赖
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && \
+# 安装系统依赖（不替换源，直接使用官方源）
+# 只安装必需的包，避免包不可用的问题
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     libmagic1 \
     curl \
+    tesseract-ocr \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
@@ -38,7 +41,7 @@ RUN pip install --upgrade pip && \
 COPY . .
 
 # 创建必要的目录
-RUN mkdir -p /app/uploads /app/output /app/logs
+RUN mkdir -p /app/uploads /app/uploads/images /app/output /app/logs
 
 # 暴露服务端口（可根据实际需要修改）
 EXPOSE 8000

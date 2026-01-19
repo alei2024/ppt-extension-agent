@@ -55,6 +55,7 @@ class ExportService:
                 
                 md_content.append(f"## {title}\n\n")
                 
+                # 导出文本内容
                 for text_box in slide.get('text_boxes', []):
                     text = text_box.get('text', '')
                     if text:
@@ -84,6 +85,37 @@ class ExportService:
                                 for ref in expanded_content['references']:
                                     md_content.append(f"- [{ref.get('title', '')}]({ref.get('url', '')})\n")
                                 md_content.append("\n")
+                
+                # 导出图片信息
+                images = slide.get('images', [])
+                if images:
+                    md_content.append("### 图片内容\n\n")
+                    for img in images:
+                        file_path = img.get('file_path', '')
+                        description = img.get('description', '')
+                        ocr_text = img.get('ocr_text', '')
+                        
+                        if file_path:
+                            # 在Markdown中插入图片
+                            md_content.append(f"![图片]({file_path})\n\n")
+                        
+                        if description:
+                            md_content.append(f"**图片描述**: {description}\n\n")
+                        
+                        if ocr_text and ocr_text != description:
+                            md_content.append(f"**识别文字**: {ocr_text}\n\n")
+                    
+                    # 如果有图片，在知识扩充时考虑图片内容
+                    if description or ocr_text:
+                        image_content = description or ocr_text
+                        slide_key = f"slide_{page_num}_images"
+                        expanded_content = expanded_data.get(slide_key, {})
+                        
+                        if expanded_content:
+                            if expanded_content.get('background'):
+                                md_content.append(f"**图片相关背景说明**\n\n{expanded_content['background']}\n\n")
+                            if expanded_content.get('principles'):
+                                md_content.append(f"**图片相关原理阐述**\n\n{expanded_content['principles']}\n\n")
                 
                 md_content.append("---\n\n")
             

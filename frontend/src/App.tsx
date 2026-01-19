@@ -14,6 +14,13 @@ type Slide = {
     position: { left: number; top: number; width: number; height: number }
     is_title: boolean
   }>
+  images?: Array<{
+    id: number
+    file_path: string
+    position: { left: number; top: number; width: number; height: number }
+    description?: string
+    ocr_text?: string
+  }>
 }
 
 type PPTData = {
@@ -37,6 +44,7 @@ function App() {
   const [pptData, setPPTData] = useState<PPTData | null>(null)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [selectedTextBoxes, setSelectedTextBoxes] = useState<number[]>([])
+  const [selectedImages, setSelectedImages] = useState<number[]>([])
   const [expandedContent, setExpandedContent] = useState<ExpandedContent | null>(null)
   const [isExpanding, setIsExpanding] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -45,6 +53,7 @@ function App() {
     setPPTData(data)
     setCurrentSlide(0)
     setSelectedTextBoxes([])
+    setSelectedImages([])
     setExpandedContent(null)
   }
 
@@ -58,8 +67,18 @@ function App() {
     })
   }
 
+  const handleImageSelect = (imageId: number) => {
+    setSelectedImages((prev) => {
+      if (prev.includes(imageId)) {
+        return prev.filter((id) => id !== imageId)
+      } else {
+        return [...prev, imageId]
+      }
+    })
+  }
+
   const handleExpand = async () => {
-    if (!pptData || selectedTextBoxes.length === 0) return
+    if (!pptData || (selectedTextBoxes.length === 0 && selectedImages.length === 0)) return
 
     setIsExpanding(true)
     setProgress(0)
@@ -70,6 +89,25 @@ function App() {
       .map((tb) => tb.text)
       .join('\n')
 
+    // 获取选中的图片信息（排除无效描述）
+    const selectedImageData = slide.images
+      ?.filter((img) => {
+        if (!selectedImages.includes(img.id)) return false
+        // 如果描述是"图片中未识别到文字内容"，直接排除
+        if (img.description === '图片中未识别到文字内容') {
+          return false
+        }
+        const hasValidDescription = img.description && 
+          img.description.trim() !== '' && 
+          img.description !== '图片中未识别到文字内容'
+        const hasOcrText = img.ocr_text && img.ocr_text.trim() !== ''
+        return hasValidDescription || hasOcrText
+      })
+      .map((img) => ({
+        description: (img.description && img.description !== '图片中未识别到文字内容') ? img.description : '',
+        ocr_text: img.ocr_text || '',
+      })) || []
+
     try {
       const response = await fetch('/api/v1/expand', {
         method: 'POST',
@@ -79,7 +117,10 @@ function App() {
         body: JSON.stringify({
           title: slide.title,
           content: selectedTexts,
-          context: { page_number: currentSlide + 1 },
+          context: { 
+            page_number: currentSlide + 1,
+            images: selectedImageData
+          },
         }),
       })
 
@@ -102,6 +143,24 @@ function App() {
     const slide = pptData.slides[currentSlide]
     const allTexts = slide.text_boxes.map((tb) => tb.text).join('\n')
 
+    // 获取所有有有效文字内容的图片信息（排除无效描述）
+    const allImageData = slide.images
+      ?.filter((img) => {
+        // 如果描述是"图片中未识别到文字内容"，直接排除
+        if (img.description === '图片中未识别到文字内容') {
+          return false
+        }
+        const hasValidDescription = img.description && 
+          img.description.trim() !== '' && 
+          img.description !== '图片中未识别到文字内容'
+        const hasOcrText = img.ocr_text && img.ocr_text.trim() !== ''
+        return hasValidDescription || hasOcrText
+      })
+      .map((img) => ({
+        description: (img.description && img.description !== '图片中未识别到文字内容') ? img.description : '',
+        ocr_text: img.ocr_text || '',
+      })) || []
+
     try {
       const response = await fetch('/api/v1/expand', {
         method: 'POST',
@@ -111,7 +170,10 @@ function App() {
         body: JSON.stringify({
           title: slide.title,
           content: allTexts,
-          context: { page_number: currentSlide + 1 },
+          context: { 
+            page_number: currentSlide + 1,
+            images: allImageData
+          },
         }),
       })
 
@@ -206,22 +268,41 @@ function App() {
                   onSlideChange={setCurrentSlide}
                   selectedTextBoxes={selectedTextBoxes}
                   onTextBoxSelect={handleTextBoxSelect}
+                  selectedImages={selectedImages}
+                  onImageSelect={handleImageSelect}
                 />
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setSelectedTextBoxes([])}
+                      onClick={() => {
+                        setSelectedTextBoxes([])
+                        setSelectedImages([])
+                      }}
                       className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                     >
                       清除选择
                     </button>
                     <button
-                      onClick={() =>
-                        setSelectedTextBoxes(
-                          pptData.slides[currentSlide].text_boxes.map((tb) => tb.id)
-                        )
-                      }
+                      onClick={() => {
+                        const slide = pptData.slides[currentSlide]
+                        setSelectedTextBoxes(slide.text_boxes.map((tb) => tb.id))
+                        // 只选择有有效文字内容的图片（排除无效描述）
+                        const imagesWithText = slide.images
+                          ?.filter((img) => {
+                            // 如果描述是"图片中未识别到文字内容"，直接排除
+                            if (img.description === '图片中未识别到文字内容') {
+                              return false
+                            }
+                            const hasValidDescription = img.description && 
+                              img.description.trim() !== '' && 
+                              img.description !== '图片中未识别到文字内容'
+                            const hasOcrText = img.ocr_text && img.ocr_text.trim() !== ''
+                            return hasValidDescription || hasOcrText
+                          })
+                          .map((img) => img.id) || []
+                        setSelectedImages(imagesWithText)
+                      }}
                       className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                     >
                       全选
@@ -231,7 +312,7 @@ function App() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleExpand}
-                      disabled={selectedTextBoxes.length === 0 || isExpanding}
+                      disabled={(selectedTextBoxes.length === 0 && selectedImages.length === 0) || isExpanding}
                       className="px-4 py-2 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                     >
                       <Upload className="w-4 h-4" />
