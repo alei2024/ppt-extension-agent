@@ -27,7 +27,7 @@ def register_user(username: str, password: str, email: Optional[str] = None) -> 
     if get_user_by_username(username):
         raise ValueError("用户已存在")
     hashed = get_password_hash(password)
-    user = {"username": username, "password_hash": hashed, "email": email or "", "goals": {}, "preferences": {}}
+    user = {"username": username, "password_hash": hashed, "email": email or "", "goals": {}, "preferences": {}, "plans": []}
     data = _load()
     data["users"].append(user)
     _save(data)
@@ -53,3 +53,20 @@ def set_goals(username: str, goals: Dict[str, Any]) -> Dict[str, Any]:
 def get_goals(username: str) -> Dict[str, Any]:
     user = get_user_by_username(username)
     return user.get("goals", {}) if user else {}
+
+def save_plan(username: str, plan: Dict[str, Any]) -> None:
+    data = _load()
+    for u in data["users"]:
+        if u["username"] == username:
+            if "plans" not in u:
+                u["plans"] = []
+            u["plans"].append(plan)
+            _save(data)
+            return
+    raise ValueError("用户不存在")
+
+def get_plans(username: str) -> list:
+    user = get_user_by_username(username)
+    if user:
+        return user.get("plans", [])
+    return []

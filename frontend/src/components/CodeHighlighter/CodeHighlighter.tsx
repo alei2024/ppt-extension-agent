@@ -36,8 +36,9 @@ function CodeHighlighter({ content, language = 'python' }: CodeHighlighterProps)
               showLineNumbers
               wrapLines
               customStyle={{
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                borderRadius: '0.75rem',
+                fontSize: '1.125rem',
+                lineHeight: '1.75',
               }}
             >
               {codeContent}

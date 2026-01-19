@@ -33,6 +33,11 @@ app.include_router(learning_router, prefix="/api/v1", tags=["Learning"])
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/references", exist_ok=True)
 
+# Debug: Print all registered routes
+for route in app.routes:
+    if hasattr(route, "path"):
+        print(f"Route: {route.path} [{route.methods}]")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)
