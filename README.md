@@ -84,19 +84,19 @@
 
 #### 3.2 功能模块详解
 
-##### 语义解析模块
+##### 3.2.1. 语义解析模块
 
 - **输入**：`.pptx` 文件。
 - **输出**：结构化JSON，包含 `slides[] -> title, body_text, shapes (类型、位置、文本), notes`。
 - **挑战应对**：处理复杂布局、SmartArt、图表标题的提取。
 
-##### 知识扩充模块
+##### 3.2.2. 知识扩充模块
 
 - **分块与向量化**：将解析出的文本按语义分块，通过 `sentence-transformers` 生成向量，存入 Milvus。
 - **检索**：用户查询时，将当前幻灯片标题/内容向量化，在 Milvus 中进行相似性检索，返回最相关的 k 个知识块。
 - **生成**：将原始内容、检索到的相关上下文、外部搜索结果（基于 DecideSearch 节点的决策结果）组合成 Prompt，送入 LLM 生成扩展内容。
 
-##### 多维搜索模块
+##### 3.2.3. 多维搜索模块
 
 - **策略**：由智能体决策节点判断是否需要及调用哪个外部搜索工具。
 - **结果处理**：对搜索结果进行摘要、去重和可信度标注。
@@ -230,7 +230,7 @@ def get_expansion_prompt_with_reference_files(title, content, context="无", ref
 
 ---
 
-##### 🚀 后端服务部署（Docker Compose）
+##### 5.1.1. 🚀 后端服务部署（Docker Compose）
 
 1. **克隆项目代码**
     ```bash
@@ -254,7 +254,7 @@ def get_expansion_prompt_with_reference_files(title, content, context="无", ref
 
 ---
 
-##### 💻 前端应用启动（React + Vite）
+##### 5.1.2. 💻 前端应用启动（React + Vite）
 
 1. **进入前端目录**
     ```bash
@@ -360,7 +360,7 @@ MINIO_SECRET_KEY=minioadmin
 
 ### 六、项目展示截图
 
-#### **6.1 用户注册登录页面**
+#### 6.1 用户注册登录页面
 
 ![用户注册界面](img/注册.png)
 
