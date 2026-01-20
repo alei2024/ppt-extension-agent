@@ -6,18 +6,26 @@
 from typing import Dict, List
 from pathlib import Path
 import logging
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib import colors
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import re
 import os
 
 logger = logging.getLogger(__name__)
+
+# reportlab 为可选依赖：没有它也应该允许服务启动（仅 PDF 导出不可用）
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib import colors
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    REPORTLAB_AVAILABLE = True
+except Exception as e:
+    REPORTLAB_AVAILABLE = False
+    _REPORTLAB_IMPORT_ERROR = e
 
 
 class ExportService:
@@ -28,7 +36,14 @@ class ExportService:
     
     def __init__(self):
         """初始化导出服务"""
-        self._register_chinese_fonts()
+        # 如果 reportlab 不可用，只启用 Markdown 导出
+        if REPORTLAB_AVAILABLE:
+            self._register_chinese_fonts()
+        else:
+            self.chinese_font_name = "Helvetica"
+            logger.warning(
+                f"reportlab 未安装/不可用，PDF 导出将不可用: {str(_REPORTLAB_IMPORT_ERROR)}"
+            )
         logger.info("导出服务初始化完成")
     
     def _register_chinese_fonts(self):
@@ -155,6 +170,11 @@ class ExportService:
             PDF文件路径
         """
         try:
+            if not REPORTLAB_AVAILABLE:
+                raise ImportError(
+                    "PDF 导出依赖 reportlab 未安装。请在当前环境安装 reportlab，或使用 Docker 运行。"
+                )
+
             doc = SimpleDocTemplate(output_path, pagesize=letter)
             styles = getSampleStyleSheet()
             story = []

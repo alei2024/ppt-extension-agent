@@ -150,6 +150,7 @@ class SearchService:
                     "summary": result.summary[:500] + "..." if len(result.summary) > 500 else result.summary,
                     "url": result.entry_id,
                     "published": result.published.strftime("%Y-%m-%d"),
+                    "source": "Arxiv",
                     "relevance": self._calculate_relevance(query, result.title, result.summary)
                 })
             

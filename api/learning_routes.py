@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from utils.auth import get_current_user
 from services.user_service import set_goals, get_goals, save_plan, get_plans
 from utils.llm_factory import create_llm
@@ -98,9 +98,66 @@ class RecommendRequest(BaseModel):
 @learning_router.post("/recommendations")
 async def recommendations(req: RecommendRequest, current_user: dict = Depends(get_current_user)):
     goals = get_goals(current_user["username"])
-    query = req.query or goals.get("topic") or ""
-    if not query:
+    raw_query = (req.query or goals.get("topic") or "").strip()
+    if not raw_query:
         raise HTTPException(status_code=400, detail="缺少查询或学习目标")
+
     search = SearchService()
-    results = search.multi_source_search(query, max_results_per_source=req.max_results)
-    return {"query": query, "results": results}
+
+    # 尽量优化查询词（尤其是中文主题），同时保持失败时可用
+    try:
+        optimized_query = (search.generate_search_query(raw_query) or "").strip()
+    except Exception:
+        optimized_query = ""
+    query = optimized_query if optimized_query else raw_query
+
+    # 推荐资源默认并行搜索 4 个公开源（Wikipedia/Bing默认不启用）
+    sources = ["arxiv", "semantic_scholar", "crossref", "openalex"]
+    results = search.multi_source_search(
+        query,
+        sources=sources,
+        max_results_per_source=req.max_results,
+        timeout_per_source=3.0,
+    )
+
+    def _normalize_item(item: Dict[str, Any], source_key: str) -> Dict[str, Any]:
+        title = item.get("title") or item.get("name") or ""
+        url = item.get("url") or item.get("URL") or item.get("pdf_url") or ""
+        summary = item.get("summary") or item.get("abstract") or item.get("snippet") or ""
+
+        # 日期字段兼容：优先 published，其次 year
+        published = item.get("published")
+        if not published and item.get("year"):
+            published = str(item.get("year"))
+
+        authors = item.get("authors")
+        if isinstance(authors, list):
+            normalized_authors: List[str] = [str(a) for a in authors if a]
+        else:
+            normalized_authors = []
+
+        normalized = dict(item)
+        normalized.setdefault("title", title)
+        normalized.setdefault("url", url)
+        normalized.setdefault("summary", summary)
+        normalized.setdefault("published", published)
+        normalized.setdefault("authors", normalized_authors)
+
+        # 统一 source 展示字段（前端展示用）
+        normalized.setdefault(
+            "source",
+            item.get("source")
+            or ("Arxiv" if source_key == "arxiv" else source_key.replace("_", " ").title()),
+        )
+        return normalized
+
+    normalized_results: Dict[str, List[Dict[str, Any]]] = {}
+    for source_key, items in (results or {}).items():
+        if isinstance(items, list):
+            normalized_results[source_key] = [
+                _normalize_item(i, source_key) for i in items if isinstance(i, dict)
+            ]
+        else:
+            normalized_results[source_key] = []
+
+    return {"query": query, "results": normalized_results}

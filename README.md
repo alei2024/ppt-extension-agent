@@ -37,6 +37,39 @@
 - **Redis**: 缓存和任务队列，提升性能
 - **Milvus**: 向量数据库，实现语义检索
 
+### 🤖 LLM Agent 工作流（LangGraph + Check Layer）
+
+本项目将“解析 / 参考文件 / 外部检索 / 扩展生成 / 校验 / 重试 / 导出”等能力组件化，并通过 **LangGraph** 编排成可复用工作流，体现：
+- **云原生**：后端服务容器化运行（`docker-compose.yml`），并可接入 Redis/Milvus 等组件
+- **容错与校验（Check Layer）**：扩展结果会进入校验节点，失败自动重试（默认最多 3 次），最终兜底返回“出错啦，请重新上传…”
+- **工具链**：解析（`PPTParser`）→ 参考文件解析（`ReferenceParser`）→ 多源搜索（`SearchService`）→ 扩展（`KnowledgeExpander`）→ 导出（`ExportService`）
+
+#### 工作流图（PPT 扩展）
+
+```mermaid
+flowchart TD
+  A[输入: title/content/context/reference_file_ids] --> B[collect_references<br/>ReferenceParser.is_relevant]
+  B --> C{有参考文件?}
+  C -- 否 --> D[decide_search: use_search=true]
+  C -- 是 --> E[decide_search: LLM 决策是否外部检索]
+  D --> F[expand: KnowledgeExpander.expand_knowledge_point]
+  E --> F
+  F --> G[check: Check Layer (LLM)]
+  G --> H{通过?}
+  H -- 是 --> I[返回 expanded_content]
+  H -- 否 & 未到最大次数 --> J{本次是否已检索?}
+  J -- 否 & 有参考文件 --> K[enable_search -> expand]
+  J -- 是/无参考文件 --> L[repair: LLM 修复 -> check]
+  H -- 否 & 达到最大次数 --> M[兜底: 出错啦，请重新上传...]
+```
+
+#### 关键 Prompt 模板（作业展示点）
+
+代码位置：`utils/prompts.py`
+- **搜索决策节点**：`get_search_decision_prompt(...)`
+- **Check Layer 校验节点**：`get_check_layer_prompt(...)`
+- **修复重试节点**：`get_repair_expansion_prompt(...)`
+
 ### LLM Agent技术栈
 - **LangChain**: Agent框架，提供工具链支持
 - **SiliconFlow API**: 大语言模型接口（使用DeepSeek-V3.2-Exp模型）
@@ -591,6 +624,17 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
+### 问题5：容器名称冲突
+```bash
+# 停止并删除所有相关容器、网络和卷
+docker-compose down -v
+
+# 如果还有残留，手动删除
+docker rm -f ppt-agent-minio ppt-agent-etcd ppt-agent-redis ppt-agent-milvus ppt-extension-agent
+
+# 然后重新启动
+docker-compose up -d --build
+```
 ---
 
 ## 使用建议

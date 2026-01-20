@@ -30,6 +30,7 @@ export default function Dashboard({
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [recsError, setRecsError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [planMessage, setPlanMessage] = useState("");
@@ -52,13 +53,21 @@ export default function Dashboard({
   };
 
   const handleSaveGoals = async () => {
+    const trimmedTopic = topic.trim();
+    if (!trimmedTopic) {
+      setSaveMessage("请输入学习目标后再保存");
+      setTimeout(() => setSaveMessage(""), 3000);
+      return;
+    }
+
     setSaving(true);
     setSaveMessage("");
     try {
-      await learning.setGoals(token, { topic });
-      setGoals({ ...goals, topic });
+      await learning.setGoals(token, { topic: trimmedTopic });
+      setGoals({ ...goals, topic: trimmedTopic });
+      setTopic(trimmedTopic);
       setSaveMessage("目标已保存！");
-      loadRecommendations(topic);
+      await loadRecommendations(trimmedTopic);
       setTimeout(() => setSaveMessage(""), 3000);
     } catch (e) {
       console.error(e);
@@ -101,10 +110,12 @@ export default function Dashboard({
   };
 
   const loadRecommendations = async (query: string) => {
-    if (!query) return;
+    const q = (query || "").trim();
+    if (!q) return;
     setLoadingRecs(true);
+    setRecsError("");
     try {
-      const data = await learning.getRecommendations(token, query);
+      const data = await learning.getRecommendations(token, q);
       const allRecs: any[] = [];
       if (data.results) {
         Object.keys(data.results).forEach((source) => {
@@ -116,6 +127,8 @@ export default function Dashboard({
       setRecommendations(allRecs);
     } catch (e) {
       console.error(e);
+      setRecommendations([]);
+      setRecsError("获取推荐资源失败，请稍后重试");
     } finally {
       setLoadingRecs(false);
     }
@@ -349,27 +362,35 @@ export default function Dashboard({
               </div>
 
               <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
-                {recommendations.length > 0 ? (
+                {recsError ? (
+                  <p className="text-red-600 text-lg">{recsError}</p>
+                ) : recommendations.length > 0 ? (
                   recommendations.map((rec, idx) => (
                     <div
                       key={idx}
                       className="border-b pb-6 last:border-0 hover:bg-gray-50 p-4 rounded-xl transition-colors"
                     >
-                      <a
-                        href={rec.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-bold text-xl text-primary-600 hover:underline block mb-2"
-                      >
-                        {rec.title}
-                      </a>
+                      {rec.url ? (
+                        <a
+                          href={rec.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-xl text-primary-600 hover:underline block mb-2"
+                        >
+                          {rec.title}
+                        </a>
+                      ) : (
+                        <div className="font-bold text-xl text-gray-900 block mb-2">
+                          {rec.title}
+                        </div>
+                      )}
                       {rec.authors && rec.authors.length > 0 && (
                         <p className="text-base text-gray-500 mt-2">
                           作者: {rec.authors.join(", ")}
                         </p>
                       )}
                       <p className="text-lg text-gray-600 mt-3 line-clamp-3 leading-relaxed">
-                        {rec.summary}
+                        {rec.summary || rec.abstract || "（暂无摘要）"}
                       </p>
                       <div className="flex gap-3 mt-4">
                         {rec.published && (

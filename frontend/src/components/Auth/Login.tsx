@@ -41,110 +41,109 @@ export default function Login({
       </div>
 
       {/* Main Content */}
-      <div className="w-full max-w-3xl relative z-10 flex flex-col items-center">
-        {/* Header Section */}
-        <div className="text-center mb-20">
-          <div className="flex items-center justify-center gap-6 mb-10">
-            <div className="p-5 bg-indigo-600 rounded-3xl shadow-2xl shadow-indigo-500/30">
-              <Sparkles className="w-12 h-12 text-white" />
-            </div>
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-6">
+          <div className="mx-auto mb-4 w-12 h-12 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-6xl font-bold text-slate-900 mb-6 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
             PPT内容扩展智能体
           </h1>
-          <p className="text-slate-500 text-3xl font-medium">登录您的账户</p>
+          <p className="text-slate-500 text-sm sm:text-base mt-1">
+            登录您的账户
+          </p>
         </div>
 
-        {/* Login Form - No Card/Frame */}
-        <form onSubmit={handleSubmit} className="w-full space-y-12">
-          <div className="space-y-10">
-            <div className="group">
-              <label className="block text-2xl font-bold text-slate-700 mb-4 ml-2">
-                用户名
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none">
-                  <User className="h-10 w-10 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                </div>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  className="block w-full pl-24 pr-8 py-8 bg-white border-2 border-slate-200 rounded-3xl text-3xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-[6px] focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-md"
-                  placeholder="请输入用户名"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="group">
-              <div className="flex items-center justify-between mb-4 ml-2">
-                <label className="block text-2xl font-bold text-slate-700">
-                  密码
+        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-xl shadow-slate-900/5 p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-4">
+              <div className="group">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  用户名
                 </label>
-                <a
-                  href="#"
-                  className="text-xl font-bold text-indigo-600 hover:text-indigo-500"
-                >
-                  忘记密码？
-                </a>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none">
-                  <Lock className="h-10 w-10 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                    placeholder="请输入用户名"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="block w-full pl-24 pr-8 py-8 bg-white border-2 border-slate-200 rounded-3xl text-3xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-[6px] focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-md"
-                  placeholder="请输入密码"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+              </div>
+
+              <div className="group">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    密码
+                  </label>
+                  <a
+                    href="#"
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    忘记密码？
+                  </a>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                    placeholder="请输入密码"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-6 border-2 border-red-100 flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-1">
-                <span className="text-red-600 text-lg font-bold">!</span>
+            {error && (
+              <div className="rounded-xl bg-red-50 p-3 border border-red-100 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-red-600 text-xs font-bold">!</span>
+                </div>
+                <p className="text-sm text-red-600 font-semibold">{error}</p>
               </div>
-              <p className="text-xl text-red-600 font-bold">{error}</p>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-8 px-10 bg-indigo-600 hover:bg-indigo-700 text-white text-3xl font-bold rounded-3xl shadow-2xl shadow-indigo-600/25 hover:shadow-indigo-600/40 focus:outline-none focus:ring-[6px] focus:ring-indigo-600/20 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.99] flex items-center justify-center gap-4 group"
-          >
-            {isLoading ? (
-              <Loader2 className="w-10 h-10 animate-spin" />
-            ) : (
-              <>
-                <span>立即登录</span>
-                <ArrowRight className="w-8 h-8 group-hover:translate-x-2 transition-transform stroke-[3px]" />
-              </>
             )}
-          </button>
-        </form>
 
-        {/* Footer Links */}
-        <div className="mt-12 text-center">
-          <p className="text-slate-500 text-xl font-medium">
-            还没有账号？{" "}
             <button
-              onClick={onSwitchToRegister}
-              className="text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-base font-semibold rounded-xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 focus:outline-none focus:ring-4 focus:ring-indigo-600/20 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.99] flex items-center justify-center gap-2 group"
             >
-              立即注册
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>登录</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
-          </p>
+          </form>
+
+          <div className="mt-5 text-center">
+            <p className="text-slate-500 text-sm">
+              还没有账号？{" "}
+              <button
+                onClick={onSwitchToRegister}
+                className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+              >
+                立即注册
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

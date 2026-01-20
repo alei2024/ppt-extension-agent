@@ -17,6 +17,7 @@ from services.knowledge_expander import KnowledgeExpander
 from services.search_service import SearchService
 from services.export_service import export_service
 from services.reference_parser import ReferenceParser
+from agents.ppt_agent import PPTExtensionAgent
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,15 @@ parser = PPTParser()
 expander = KnowledgeExpander()
 search_service = SearchService()
 reference_parser = ReferenceParser()
+
+# 工作流编排层：把 routes 里分散的步骤收拢到 agent
+ppt_agent = PPTExtensionAgent(
+    parser=parser,
+    expander=expander,
+    search_service=search_service,
+    reference_parser=reference_parser,
+    export_service=export_service,
+)
 
 # 参考文件存储（使用内存字典，实际生产环境建议使用Redis）
 reference_files_store = {}
@@ -332,48 +342,35 @@ async def expand_knowledge(request: ExpansionRequest):
     """
     try:
         logger.info(f"收到知识扩充请求: {request.title}")
-        
-        # 获取参考文件内容
-        reference_contents = []
-        if request.reference_file_ids:
-            for ref_id in request.reference_file_ids:
-                if ref_id in reference_files_store:
-                    ref_data = reference_files_store[ref_id]["parsed_data"]
-                    # 判断相关性
-                    is_relevant = reference_parser.is_relevant(
-                        ref_data["content"],
-                        request.content
-                    )
-                    if is_relevant:
-                        reference_contents.append({
-                            "filename": ref_data["filename"],
-                            "content": ref_data["content"],
-                            "chunks": ref_data["chunks"]
-                        })
-                        logger.info(f"参考文件 {ref_data['filename']} 与PPT内容相关，将用于扩充")
-                    else:
-                        logger.info(f"参考文件 {ref_data['filename']} 与PPT内容不相关，跳过")
-        
-        expanded = expander.expand_knowledge_point(
+        return ppt_agent.run_expand_workflow(
             title=request.title,
             content=request.content,
             context=request.context,
-            reference_contents=reference_contents if reference_contents else None
+            reference_file_ids=request.reference_file_ids,
+            reference_files_store=reference_files_store,
+            validate=False,
         )
-        
-        return {
-            "title": request.title,
-            "original_content": request.content,
-            "expanded_content": expanded,
-            "reference_files_used": [ref["filename"] for ref in reference_contents] if reference_contents else [],
-            "status": "success"
-        }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"知识扩充失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"知识扩充失败: {str(e)}")
+        # 容错：即使异常也返回可展示结构，避免前端“空白/崩溃”
+        logger.error(f"知识扩充失败(兜底返回): {str(e)}")
+        return {
+            "title": request.title,
+            "original_content": request.content,
+            "expanded_content": {
+                "background": "",
+                "principles": "",
+                "formulas": "",
+                "examples": "",
+                "summary": "出错啦，请重新上传或稍后重试。",
+                "references": [],
+            },
+            "reference_files_used": [],
+            "status": "failed",
+            "attempts": 0,
+        }
 
 
 @router.post("/expand-with-validation")
@@ -389,46 +386,41 @@ async def expand_with_validation(request: ExpansionRequest):
     """
     try:
         logger.info(f"收到带验证的知识扩充请求: {request.title}")
-        
-        # 获取参考文件内容
-        reference_contents = []
-        if request.reference_file_ids:
-            for ref_id in request.reference_file_ids:
-                if ref_id in reference_files_store:
-                    ref_data = reference_files_store[ref_id]["parsed_data"]
-                    # 判断相关性
-                    is_relevant = reference_parser.is_relevant(
-                        ref_data["content"],
-                        request.content
-                    )
-                    if is_relevant:
-                        reference_contents.append({
-                            "filename": ref_data["filename"],
-                            "content": ref_data["content"],
-                            "chunks": ref_data["chunks"]
-                        })
-        
-        expanded = expander.expand_with_validation(
+        return ppt_agent.run_expand_workflow(
             title=request.title,
             content=request.content,
             context=request.context,
-            reference_contents=reference_contents if reference_contents else None
+            reference_file_ids=request.reference_file_ids,
+            reference_files_store=reference_files_store,
+            validate=True,
         )
-        
-        return {
-            "title": request.title,
-            "original_content": request.content,
-            "expanded_content": expanded,
-            "validation": expanded.get("validation", {}),
-            "reference_files_used": [ref["filename"] for ref in reference_contents] if reference_contents else [],
-            "status": "success"
-        }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"知识扩充失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"知识扩充失败: {str(e)}")
+        logger.error(f"知识扩充失败(兜底返回): {str(e)}")
+        return {
+            "title": request.title,
+            "original_content": request.content,
+            "expanded_content": {
+                "background": "",
+                "principles": "",
+                "formulas": "",
+                "examples": "",
+                "summary": "出错啦，请重新上传或稍后重试。",
+                "references": [],
+            },
+            "validation": {
+                "is_relevant": False,
+                "is_accurate": False,
+                "is_consistent": False,
+                "confidence": 0.0,
+                "issues": [f"服务异常: {str(e)}"],
+            },
+            "reference_files_used": [],
+            "status": "failed",
+            "attempts": 0,
+        }
 
 
 @router.post("/batch-expand")
@@ -444,17 +436,7 @@ async def batch_expand_knowledge(request: BatchExpansionRequest):
     """
     try:
         logger.info(f"收到批量扩充请求，共{len(request.knowledge_points)}个知识点")
-        
-        results = expander.batch_expand(request.knowledge_points)
-        
-        success_count = sum(1 for r in results if r["status"] == "success")
-        
-        return {
-            "total": len(results),
-            "success": success_count,
-            "failed": len(results) - success_count,
-            "results": results
-        }
+        return ppt_agent.run_batch_expand_workflow(request.knowledge_points)
         
     except HTTPException:
         raise

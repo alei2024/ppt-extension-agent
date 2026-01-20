@@ -655,3 +655,132 @@ def get_image_description_prompt(ocr_text: str, page_number: int = None) -> str:
 "这是一张机器学习流程图，展示了三种主要的学习方式：监督学习、无监督学习和强化学习。图片可能用于说明机器学习的基本分类。"
 """
     return prompt
+
+
+def get_search_decision_prompt(
+    title: str,
+    content: str,
+    context: str = "无",
+    reference_excerpt: str = "无",
+) -> str:
+    """
+    决策是否需要外部搜索的 Prompt（用于 LangGraph 决策节点）。
+    目标：当用户提供了参考文件时，智能判断“是否还需要外部权威检索”。
+    """
+    prompt = f"""你是一位“学习资料检索策略”的决策助手。现在系统将为PPT知识点生成扩展内容。
+
+你需要决定：在已经有“用户参考文件”的情况下，是否还需要外部检索（Arxiv / Semantic Scholar / Crossref / OpenAlex）。
+
+**标题**: {title}
+
+**原始内容**:
+{content}
+
+**上下文信息**:
+{context}
+
+**用户参考文件摘录**（可能已截断）:
+{reference_excerpt}
+
+**决策规则（非常重要）**:
+1. 如果参考文件已充分覆盖核心概念、定义、公式、步骤：可以不进行外部检索（use_search=false）。
+2. 如果参考文件内容不够、含糊、缺少来源、或可能需要更权威论文/定义支撑：应进行外部检索（use_search=true）。
+3. 若参考文件与主题相关性弱：use_search=true。
+4. 你只做决策，不要输出解释性长文。
+
+**输出格式**（必须严格 JSON，不要 Markdown）:
+{{
+  "use_search": true/false,
+  "reason": "一句话原因（<=30字）"
+}}
+"""
+    return prompt
+
+
+def get_check_layer_prompt(
+    original: str,
+    expansion_json: str,
+    reference_excerpt: str = "无",
+    used_search: bool = False,
+) -> str:
+    """
+    Check Layer Prompt（用于 LangGraph 校验节点）。
+    - 检查相关性、事实准确性、逻辑一致性
+    - 如果有参考文件，要求与参考文件不冲突；如冲突要指出
+    """
+    prompt = f"""你是一位专业的“内容校验(Check Layer)审核员”。你要严格检查扩展内容是否存在幻觉、错误或不一致。
+
+**原始内容**:
+{original}
+
+**扩展内容(JSON)**:
+{expansion_json}
+
+**用户参考文件摘录**（如有，可能已截断）:
+{reference_excerpt}
+
+**是否已使用外部检索**: {"是" if used_search else "否"}
+
+**审核标准**:
+1. 语义相关性：扩展是否围绕原始内容展开？
+2. 事实准确性：是否出现明显错误、编造术语/论文/结论？
+3. 一致性：内部是否自相矛盾？是否与参考文件冲突？
+4. 可验证性：如果给出“引用/论文/链接”，是否看起来合理（不要编造不存在的DOI/URL）？
+
+**输出格式**（必须严格 JSON，不要 Markdown）:
+{{
+  "is_relevant": true/false,
+  "is_accurate": true/false,
+  "is_consistent": true/false,
+  "confidence": 0.0,
+  "issues": ["问题1", "问题2"]
+}}
+
+**阈值**:
+- confidence >= 0.7 且三个 is_* 均为 true 才算通过
+"""
+    return prompt
+
+
+def get_repair_expansion_prompt(
+    original: str,
+    previous_expansion_json: str,
+    issues: List[str],
+    reference_excerpt: str = "无",
+) -> str:
+    """
+    修复重试 Prompt（用于 LangGraph 重试节点）。
+    要求：基于问题列表修正扩展结果，输出与原 schema 一致的 JSON。
+    """
+    issues_text = "\n".join([f"- {i}" for i in issues]) if issues else "- （无）"
+    prompt = f"""你是一位专业的教育内容修订专家。下面的扩展内容被 Check Layer 判定存在问题，请你修正。
+
+**原始内容**:
+{original}
+
+**上一版扩展内容(JSON)**:
+{previous_expansion_json}
+
+**发现的问题**:
+{issues_text}
+
+**用户参考文件摘录**（优先遵循，不要与其冲突）:
+{reference_excerpt}
+
+**修订要求（非常重要）**:
+1. 纠正错误/矛盾/不严谨描述，避免幻觉
+2. 若参考文件包含相关信息，必须以参考文件为准
+3. 不要编造不存在的论文/DOI/URL；如果不确定，references 置空或只给通用学习资源
+4. 输出必须是 JSON，且字段必须齐全：background/principles/formulas/examples/summary/references
+
+**输出 JSON schema**（必须严格输出该结构）:
+{{
+  "background": "...",
+  "principles": "...",
+  "formulas": "...",
+  "examples": "...",
+  "summary": "...",
+  "references": [{{"title": "...", "url": "...", "source": "..."}}]
+}}
+"""
+    return prompt

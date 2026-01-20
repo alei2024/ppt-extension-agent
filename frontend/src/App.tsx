@@ -433,58 +433,58 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-[95%] mx-auto px-6 py-8 flex items-center justify-between">
-          <div className="flex items-center gap-10">
+        <div className="max-w-[95%] mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 sm:gap-8 min-w-0">
             <div className="flex items-center gap-4">
-              <Sparkles className="w-14 h-14 text-primary-600" />
-              <h1 className="text-4xl font-bold text-gray-900 hidden sm:block">
+              <Sparkles className="w-9 h-9 sm:w-12 sm:h-12 text-primary-600 flex-shrink-0" />
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-900 hidden sm:block">
                 PPT内容扩展智能体
               </h1>
             </div>
 
-            <nav className="flex space-x-8">
+            <nav className="flex gap-2 sm:gap-4">
               <button
                 onClick={() => setView("dashboard")}
-                className={`px-8 py-4 rounded-xl text-2xl font-medium transition-colors flex items-center gap-4 ${
+                className={`px-3 sm:px-5 py-2 sm:py-3 rounded-xl text-sm sm:text-base lg:text-lg font-medium transition-colors flex items-center gap-2 sm:gap-3 ${
                   view === "dashboard"
                     ? "bg-primary-50 text-primary-700"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                <LayoutDashboard className="w-8 h-8" />
-                学习仪表盘
+                <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span className="hidden sm:inline">学习仪表盘</span>
               </button>
               <button
                 onClick={() => setView("ppt")}
-                className={`px-8 py-4 rounded-xl text-2xl font-medium transition-colors flex items-center gap-4 ${
+                className={`px-3 sm:px-5 py-2 sm:py-3 rounded-xl text-sm sm:text-base lg:text-lg font-medium transition-colors flex items-center gap-2 sm:gap-3 ${
                   view === "ppt"
                     ? "bg-primary-50 text-primary-700"
                     : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                <FileText className="w-8 h-8" />
-                PPT扩展
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span className="hidden sm:inline">PPT扩展</span>
               </button>
             </nav>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
             {user && (
               <button
                 onClick={() => setView("profile")}
-                className="flex items-center gap-4 text-xl text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 text-sm sm:text-base text-gray-700 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
                 title="个人中心"
               >
-                <User className="w-8 h-8" />
-                <span>{user.username}</span>
+                <User className="w-6 h-6 sm:w-7 sm:h-7" />
+                <span className="hidden sm:inline">{user.username}</span>
               </button>
             )}
             <button
               onClick={handleLogout}
-              className="p-4 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 sm:p-3 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
               title="退出登录"
             >
-              <LogOut className="w-10 h-10" />
+              <LogOut className="w-7 h-7 sm:w-8 sm:h-8" />
             </button>
           </div>
         </div>
