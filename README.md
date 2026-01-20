@@ -1,664 +1,384 @@
-# PPT内容扩展智能体
+### 《智能体云原生开发》期末大作业
 
-基于云原生架构和LLM Agent技术构建的智能PPT学习助手系统，帮助用户深入理解PPT内容。
+> **💡 快速开始提示**：如需运行本项目，请直接查看 [5.1 快速开始](#51-快速开始) 章节。
 
-## 项目简介
+#### 一、摘要
 
-本系统是一个功能完善的PPT智能学习助手，提供全方位的学习支持：
-- 🔍 **自动解析PPT**：智能识别文档结构、提取文本内容和表格数据
-- 📚 **知识扩充**：调用大语言模型为每个知识点补充背景说明、公式推导、代码示例
-- 🔎 **多源文献检索**：整合Arxiv、Semantic Scholar等4个学术数据库，快速获取权威参考文献
-- 📄 **参考文件支持**：上传Word/PDF文档作为扩充依据，生成更精准的内容
-- 📅 **学习计划生成**：基于LLM生成个性化学习路径，包含周目标和每日任务
-- 👤 **用户成长中心**：Dashboard可视化展示学习进度，管理学习目标
-- 🎨 **现代化UI**：响应式设计，流畅动画，完美适配多种设备
-- 📊 **内容导出**：支持导出为Markdown和PDF格式，方便学习和分享
+##### 1.  我们小组选择**命题一**，旨在开发一个基于大模型的 PPT 智能扩展与辅助学习 Agent。我们实现了一个完整的云原生智能体系统，核心功能摘要如下：
 
-### 核心特性
+    1.  **PPT 深度语义解析**：基于 `python-pptx` 实现了对 PPT 文件的结构化提取，能够准确识别标题、正文及层级关系。
+    2.  **智能知识扩展 (RAG + Agent)**：利用 `LangGraph` 构建了具备“检索-决策-生成-校验”能力的智能体工作流。系统能自动判断知识点是否需要外部搜索（Arxiv/Semantic Scholar），并利用向量数据库 (`Milvus`) 进行检索增强生成。
+    3.  **个性化学习仪表盘**：集成用户画像与学习路径规划功能，支持设定学习目标、生成每日任务清单，并基于用户兴趣推荐相关学术资源，打造“伴随式”学习体验。
+    4.  **云原生微服务架构**：系统完全容器化，后端服务、Redis 消息队列、Milvus 向量库均通过 `Docker Compose` 编排，具备良好的扩展性与部署便捷性。
+    5.  **全栈交互体验**：提供了基于 React 的前端界面与 FastAPI 后端服务，支持文件上传、异步任务处理及生成结果的实时展示。
 
-#### 🎯 智能学习增强
-- **多维度内容扩充**：为每个知识点提供背景说明、原理阐述、公式推导、代码示例和要点总结
-- **上下文理解**：基于PPT结构和章节关系，生成符合学习逻辑的扩展内容
-- **智能验证机制**：内置Check layer防止LLM幻觉，确保内容准确性
+##### 2. **团队分工**（贡献度均为33.3%，组内均分）
 
-#### 📚 权威知识源
-- **多源学术检索**：整合Arxiv、Semantic Scholar、Crossref、OpenAlex等4个权威学术数据库
-- **智能关键词提取**：使用LLM从内容中提取核心关键词，提升检索准确性
-- **期刊质量过滤**：自动筛选和优先展示高影响力期刊论文
-- **并行检索优化**：多源并行搜索，响应速度提升50-60%
+- 韩悦（10213903418）：智能体架构与编排
+  - **负责模块**：LangGraph 工作流、PPT 基础结构解析、PPT 图片解析 (OCR)。
+  - **核心贡献**：设计并实现了“检索-决策-生成-校验”的闭环工作流；优化了 Prompt 工程以提升 Agent 的语义理解与容错能力；利用 `python-pptx`, `PyMuPDF` 与 OCR 技术解决了 PPT、PDF 及 Word 等多模态数据的提取难题。
 
----
+![韩悦工作流程图](img/韩悦上传1.png)
 
-## 技术架构
+![韩悦技术架构图](img/韩悦上传2.png)
 
-### 云原生组件
-- **Docker**: 容器化部署，确保环境一致性
-- **Docker Compose**: 多服务编排，一键启动
-- **Redis**: 缓存和任务队列，提升性能
-- **Milvus**: 向量数据库，实现语义检索
+- 贾馨雨（10235501437）：全栈业务与个性化
+  - **负责模块**：用户注册登录、学习目标控制、个性化推荐系统、前端开发。
+  - **核心贡献**：构建了完整的用户认证体系；实现了基于用户画像的个性化学习计划生成算法；完成了 React 前端与后端 API 的对接；撰写**实验报告**。
 
-### 🤖 LLM Agent 工作流（LangGraph + Check Layer）
+![贾馨雨工作展示](img/贾馨雨上传.png)
 
-本项目将“解析 / 参考文件 / 外部检索 / 扩展生成 / 校验 / 重试 / 导出”等能力组件化，并通过 **LangGraph** 编排成可复用工作流，体现：
-- **云原生**：后端服务容器化运行（`docker-compose.yml`），并可接入 Redis/Milvus 等组件
-- **容错与校验（Check Layer）**：扩展结果会进入校验节点，失败自动重试（默认最多 3 次），最终兜底返回“出错啦，请重新上传…”
-- **工具链**：解析（`PPTParser`）→ 参考文件解析（`ReferenceParser`）→ 多源搜索（`SearchService`）→ 扩展（`KnowledgeExpander`）→ 导出（`ExportService`）
+- 杨云天（10245501405）：数据检索与多模态解析
+  - **负责模块**：多源搜索 API、参考文件上传解析 (PDF/Word)。
+  - **核心贡献**：封装了 Arxiv/Semantic Scholar 等多源搜索接口，并实现了功能整合；录制**demo**视频
 
-#### 工作流图（PPT 扩展）
+![杨云天工作展示](img/杨云天上传.png)
 
-```mermaid
-flowchart TD
-  A[输入: title/content/context/reference_file_ids] --> B[collect_references<br/>ReferenceParser.is_relevant]
-  B --> C{有参考文件?}
-  C -- 否 --> D[decide_search: use_search=true]
-  C -- 是 --> E[decide_search: LLM 决策是否外部检索]
-  D --> F[expand: KnowledgeExpander.expand_knowledge_point]
-  E --> F
-  F --> G[check: Check Layer (LLM)]
-  G --> H{通过?}
-  H -- 是 --> I[返回 expanded_content]
-  H -- 否 & 未到最大次数 --> J{本次是否已检索?}
-  J -- 否 & 有参考文件 --> K[enable_search -> expand]
-  J -- 是/无参考文件 --> L[repair: LLM 修复 -> check]
-  H -- 否 & 达到最大次数 --> M[兜底: 出错啦，请重新上传...]
-```
+#### 二、 架构设计
 
-#### 关键 Prompt 模板（作业展示点）
+#### 2.1 系统架构图与数据流向
 
-代码位置：`utils/prompts.py`
-- **搜索决策节点**：`get_search_decision_prompt(...)`
-- **Check Layer 校验节点**：`get_check_layer_prompt(...)`
-- **修复重试节点**：`get_repair_expansion_prompt(...)`
+![智能体系统架构图](img/智能体系统架构图.png)
 
-### LLM Agent技术栈
-- **LangChain**: Agent框架，提供工具链支持
-- **SiliconFlow API**: 大语言模型接口（使用DeepSeek-V3.2-Exp模型）
+**数据流向说明**：
 
-### 前端技术栈
-- **React 18 + TypeScript**: 现代化前端框架
-- **Tailwind CSS**: 原子化CSS框架，实现响应式布局
-- **Framer Motion**: 流畅的UI动画交互
-- **Recharts**: 数据可视化图表（学习进度展示）
-- **KaTeX**: 数学公式渲染
-- **Prism.js**: 代码高亮
+1.  **用户操作**: 用户通过前端上传PPT并触发扩展任务。
+2.  **API 接收**: API网关接收请求，创建异步任务并存入Redis队列。
+3.  **任务分发**: Celery Worker (集成在 Agent 服务中) 消费任务，启动解析服务提取PPT文本和结构。
+4.  **智能编排**: 解析后的结构化数据送入LangGraph智能体工作流。
+5.  **工具调用**: 智能体根据策略，依次调用向量检索（RAG）、外部搜索和LLM生成等工具。
+6.  **结果存储**: 最终生成的扩展内容与原始PPT关联，存储于 MinIO 和 本地数据文件（生产环境可迁移至 PostgreSQL）。
+7.  **前端展示**: 前端通过轮询获取任务结果并展示。
 
-### 核心功能模块
-- **用户认证系统**: JWT token认证，支持用户注册、登录和权限管理
-- **PPT解析**: 使用python-pptx进行文档解析，智能提取标题、表格、备注页文本
-- **参考文件上传**: 支持上传Word/PDF文件作为扩充依据，智能判断相关性
-- **知识扩充**: LLM驱动的知识扩展，优先使用用户上传的参考文件
-- **智能关键词提取**: 使用LLM从选中内容中提取3-5个核心关键词，用于文献检索
-- **多维搜索**: 整合Arxiv、Semantic Scholar、Crossref、OpenAlex等4个外部资源（并行执行，带超时保护）
-- **学习计划生成**: 基于LLM生成包含周目标、每日任务、资源链接的结构化学习计划
-- **用户成长中心**: 个人Dashboard，管理学习计划、设定学习目标、查看进度统计
-- **导出功能**: 支持Markdown和PDF格式导出
+#### 2.2 云原生组件清单
+
+| 组件            | 版本     | 用途                                                         | 容器名             | 命题对应与考核点                                             |
+| --------------- | -------- | ------------------------------------------------------------ | ------------------ | ------------------------------------------------------------ |
+| **Docker**      | 24+      | 应用容器化与编排基石                                         | -                  | **云原生核心**：实现环境一致性，避免“单一脚本运行”。         |
+| **Redis**       | 7-alpine | 1) Celery任务队列Broker<br>2) 用户会话缓存<br>3) Agent中间状态缓存 | `ppt-agent-redis`  | **容错与性能**：异步解耦，提升系统响应与稳定性。             |
+| **Milvus**      | v2.3.x   | 存储PPT切片及扩展知识的向量，实现语义相关性检索              | `ppt-agent-milvus` | **命题核心**：实现基于语义的RAG，支撑“联想内容相关度”考核。  |
+| **MinIO**       | RELEASE  | 对象存储，用于存放用户上传的原始PPT文件和生成的扩展文档      | `ppt-agent-minio`  | **云原生存储实践**：分离数据与计算。                         |
+| **Etcd**        | v3.5.x   | Milvus的元数据存储依赖                                       | `ppt-agent-etcd`   | 支撑分布式向量数据库的运行。                                 |
+| **Persistence** | -        | 用户数据与任务状态存储                                       | (Internal)         | **数据持久化**：当前使用 JSON 文件存储，设计上支持 PostgreSQL 扩展。 |
+
+#### 2.3 LLM Agent 工具链
+
+- **核心框架**：`langchain`, `langgraph` (工作流编排), `langchain-openai` (兼容DeepSeek API)
+- **文档解析**：`python-pptx` (PPTX), `PyMuPDF` (PDF参考文档), `python-docx` (Docx参考文档)
+- **文本处理与向量化**：`sentence-transformers` (all-MiniLM-L6-v2 生成Embedding), `pymilvus` (向量检索客户端)
+- **外部知识搜索**：`arxiv` (学术论文), `Semantic Scholar` (学术搜索), `Crossref` (学术文献), `OpenAlex` (开放学术图谱)
+- **其他工具**：`pytesseract` (OCR), `requests` (API调用)
 
 ---
 
-## 快速开始
+### 三、 核心功能与工作流
 
-### 📋 前置检查
+#### 3.1 用户操作流程
 
-确保已安装：
-- Docker >= 20.10
-- Docker Compose >= 2.0
-- Node.js >= 18（前端开发）
+1.  **上传与分析**：用户上传PPT文件。系统解析并展示其大纲结构（目录、标题、页面预览）。
+2.  **选择与配置**：用户选择需要扩展的特定页面或全部页面，可选择附加参考文档（PDF/Docx）。
+3.  **触发扩展**：用户点击“智能扩展”，系统创建异步任务。
+4.  **异步处理**：后端智能体按工作流（见下文智能体策略）进行处理，用户可在任务中心查看实时状态。
+5.  **查看与导出**：处理完成后，用户可在交互式界面中通过分栏（背景、原理、公式、示例、总结）查看生成的扩展内容，并支持导出为 Markdown 或 PDF 格式。
+6.  **导出**：将扩展后的完整内容导出为新的PPTX或Markdown文件。
 
-### 🚀 Docker Compose 一键启动（推荐）
+#### 3.2 功能模块详解
 
-#### 步骤 1：克隆项目
-```bash
-git clone https://github.com/alei2024/ppt-extension-agent.git
-cd ppt-extension-agent
-```
+##### 语义解析模块
 
-#### 步骤 2：配置环境变量（可选）
-```bash
-# 项目已内置默认API配置，可直接运行
-# 如需自定义，复制并编辑：
-cp env.example .env
-```
+- **输入**：`.pptx` 文件。
+- **输出**：结构化JSON，包含 `slides[] -> title, body_text, shapes (类型、位置、文本), notes`。
+- **挑战应对**：处理复杂布局、SmartArt、图表标题的提取。
 
-#### 步骤 3：启动后端服务
-```bash
-# 构建镜像并启动所有服务
-docker-compose up -d --build
+##### 知识扩充模块
 
-# 查看服务状态
-docker-compose ps
+- **分块与向量化**：将解析出的文本按语义分块，通过 `sentence-transformers` 生成向量，存入 Milvus。
+- **检索**：用户查询时，将当前幻灯片标题/内容向量化，在 Milvus 中进行相似性检索，返回最相关的 k 个知识块。
+- **生成**：将原始内容、检索到的相关上下文、外部搜索结果（基于 DecideSearch 节点的决策结果）组合成 Prompt，送入 LLM 生成扩展内容。
 
-# 查看日志
-docker-compose logs -f ppt-agent
-```
+##### 多维搜索模块
 
-**预期输出**：看到 "Application startup complete" 表示启动成功
+- **策略**：由智能体决策节点判断是否需要及调用哪个外部搜索工具。
+- **结果处理**：对搜索结果进行摘要、去重和可信度标注。
 
-#### 步骤 4：启动前端
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### 四、智能体策略
 
-访问 **http://localhost:3000** 查看前端界面。
+遵循“规划(Plan) -> 执行(Act) -> 校验(Check) -> 修复(Repair)”的闭环，内置容错。
 
-#### 步骤 5：验证服务
-```bash
-# 健康检查
-curl http://localhost:8000/health
+#### 4.1 LangGraph 工作流设计
 
-# API文档
-# 浏览器打开：http://localhost:8000/docs
-```
+![LangGraph工作流设计图](img/LangChain结构图.png)
 
-#### 常用命令
-```bash
-# 查看服务状态
-docker-compose ps
+**节点详解**：
 
-# 查看日志
-docker-compose logs -f ppt-agent
+- **DecideSearch (决策节点)**：
+  - **Prompt目标**：判断当前PPT知识点上下文是否足够进行高质量扩展。
+  - **输入**：幻灯片标题、正文、已有的参考文档摘要。
+  - **输出**：`{"use_search": boolean, "reason": str}`。
+  - _注：此节点仅设置标志位，实际搜索动作由 Expand 节点内部服务执行。_
 
-# 停止服务
-docker-compose down
+- **Expand (扩展生成节点)**：
+  - **输入**：原始内容 + 参考文档片段 + 搜索结果（如果有）。
+  - **核心Prompt**：严格遵循结构化输出要求（JSON），强调基于给定信息生成，减少幻觉。
+  - _注：若 `use_search` 为 True，此节点会先调用 `SearchService` 执行多源搜索。_
 
-# 重启服务
-docker-compose restart
+- **CheckQuality (校验层节点)**：
+  - **目的**：实现“注重容错”要求，对抗模型幻觉。
+  - **检查项**：事实一致性、格式合规性、内容完整性、与原始主题的相关性。
+  - **“低温”LLM**：使用更低温度（temperature=0.1）的LLM进行严谨性检查。
 
-# 重建并启动（代码更新后）
-docker-compose up -d --build
-```
+- **Repair (修复节点)**：
+  - **策略**：根据CheckQuality返回的具体错误信息，重构或修正Prompt，直接生成修复后的内容，并再次送入 CheckQuality 节点。
 
----
+#### 4.2 关键Prompt模板
 
-## 功能详解
+````python
+# 1. 搜索决策Prompt (对应DecideSearch节点)
+def get_search_decision_prompt(title, content, context="无", reference_excerpt="无"):
+    return f"""你是一位“学习资料检索策略”的决策助手。现在系统将为PPT知识点生成扩展内容。
+你需要决定：在已经有“用户参考文件”的情况下，是否还需要外部检索（Arxiv / Semantic Scholar / Crossref / OpenAlex）。
 
-### 👤 1. 用户认证与管理
+**标题**: {title}
+**原始内容**:
+{content}
+**上下文信息**:
+{context}
+**用户参考文件摘录**:
+{reference_excerpt}
 
-#### 功能说明
-提供完整的用户账号系统，保护个人数据，支持个性化学习体验。
+**决策规则**:
+1. 如果参考文件已充分覆盖核心概念、定义、公式、步骤：可以不进行外部检索（use_search=false）。
+2. 如果参考文件内容不够、含糊、缺少来源、或可能需要更权威论文/定义支撑：应进行外部检索（use_search=true）。
+3. 若参考文件与主题相关性弱：use_search=true。
+4. 你只做决策，不要输出解释性长文。
 
-#### 核心能力
-- **用户注册/登录**：支持邮箱/用户名注册，密码加密存储（bcrypt）
-- **JWT Token认证**：安全的token认证机制，无需频繁登录
-- **权限管理**：基于token的API访问控制
-- **用户信息管理**：个人资料、学习目标、偏好设置
+**输出格式**（必须严格 JSON，不要 Markdown）:
+{{
+  "use_search": true/false,
+  "reason": "一句话原因（<=30字）"
+}}
+"""
 
-#### 使用方法
-1. 首次访问时进入登录页面
-2. 点击"注册"创建新账号，或使用已有账号登录
-3. 登录后自动跳转到Dashboard
-4. 个人中心可管理账号信息和学习目标
+# 2. 校验层Prompt (对应CheckQuality节点)
+def get_check_layer_prompt(original, expansion_json, reference_excerpt="无", used_search=False):
+    return f"""你是一位专业的“内容校验(Check Layer)审核员”。你要严格检查扩展内容是否存在幻觉、错误或不一致。
 
----
+**原始内容**:
+{original}
 
-### 📅 2. 智能学习计划生成
+**扩展内容(JSON)**:
+{expansion_json}
 
-#### 功能说明
-基于大语言模型生成个性化学习路径，将学习目标分解为可执行的周目标和每日任务。
+**用户参考文件摘录**:
+{reference_excerpt}
 
-#### 核心能力
-- **个性化定制**：输入学习主题、目标周期（周数）、当前水平（初/中/高）
-- **结构化输出**：自动生成包含以下内容的学习计划：
-  - **周目标**：每周要达成的学习里程碑
-  - **每日任务**：具体的学习行动项（理论学习、实践练习、项目实战）
-  - **资源推荐**：相关学习资料、教程链接、练习题
-- **进度追踪**：在个人中心查看和管理历史学习计划
-- **智能调整**：根据学习进度动态调整计划
+**是否已使用外部检索**: {"是" if used_search else "否"}
 
-#### 使用方法
-1. 登录后进入"学习计划"页面
-2. 填写学习主题（如"机器学习入门"）
-3. 选择学习周期（如4周）和当前水平（初级/中级/高级）
-4. 点击"生成计划"，系统自动生成结构化学习路径
-5. 查看生成的周目标和每日任务
-6. 保存到个人中心，随时查看和更新进度
+**审核标准**:
+1. 语义相关性：扩展是否围绕原始内容展开？
+2. 事实准确性：是否出现明显错误、编造术语/论文/结论？
+3. 一致性：内部是否自相矛盾？是否与参考文件冲突？
+4. 可验证性：如果给出“引用/论文/链接”，是否看起来合理？
 
-#### 应用场景
-- 新技术学习路径规划
-- 考试复习计划制定
-- 项目技能提升规划
-- 知识体系构建
+**输出格式**（必须严格 JSON，不要 Markdown）:
+{{
+  "is_relevant": true/false,
+  "is_accurate": true/false,
+  "is_consistent": true/false,
+  "confidence": 0.0,
+  "issues": ["问题1", "问题2"]
+}}
 
----
+**阈值**:
+- confidence >= 0.7 且三个 is_* 均为 true 才算通过
+"""
 
-### 📖 3. PPT智能解析
+# 3. 知识扩展Prompt (对应Expand节点，带参考文件的版本)
+def get_expansion_prompt_with_reference_files(title, content, context="无", reference_contents=None, search_results=None):
+    return f"""你是一位专业的教育内容扩展助手，擅长将简短的知识点扩展为详细的学习材料。**请优先使用用户提供的参考文件内容**，结合外部权威资料为PPT知识点生成详细的扩展内容。
 
-#### 功能说明
-系统能够深度解析PPT文件，提取所有有价值的内容，为后续的知识扩充提供基础。
+**标题**: {title}
+**原始内容**: {content}
+**上下文信息**:
+{context}
+**用户提供的参考文件**（优先使用）:
+{{reference_text}}
+**外部权威参考资料**（作为补充）:
+{{references_text}}
 
-#### 核心能力
-- **层级结构识别**：自动识别PPT的目录、章节、小节层级关系
-- **全面文本提取**：提取文本框、表格、备注页中的所有内容
-- **智能内容过滤**：自动过滤纯数字、英文人名、页码等无意义信息
-- **图片和表格**：识别PPT中图片的位置信息和表格的数据结构
-- **兜底机制**：确保每页都有可选中的内容，优先使用标题
+**扩展要求**:
+1. **背景说明**: 解释知识点的来龙去脉... **优先参考用户提供的参考文件中的信息**
+2. **原理阐述**: 详细阐述核心原理... **优先结合参考文件中的权威观点**
+3. **公式推导**: 如有数学公式，请提供完整的推导过程（使用LaTeX格式，如 $E=mc^2$）
+4. **代码示例**: 如有编程实现，请提供Python代码示例，并添加详细注释
+5. **要点总结**: 总结核心要点，便于快速复习
 
-#### 使用方法
-1. 点击"上传PPT"或拖拽PPT文件到上传区域
-2. 系统自动解析，显示每页的文本框内容
-3. 点击文本框选中需要扩充的内容
-4. 支持单选、多选和全选模式
+**输出格式**（必须严格按照以下JSON格式输出）:
+```json
+{{
+    "background": "背景说明内容...",
+    "principles": "原理阐述内容...",
+    "formulas": "公式推导内容（如适用）",
+    "examples": "代码示例内容（如适用）",
+    "summary": "要点总结内容..."
+}}
+````
 
----
+### 五、 系统部署与运行指南
 
-### 📚 4. 知识内容扩充
-
-#### 功能说明
-基于大语言模型（DeepSeek-V3.2-Exp）为选中的知识点生成多维度的扩展内容。
-
-#### 扩充内容类型
-| 类型 | 说明 | 示例 |
-|------|------|------|
-| **背景说明** | 知识点的历史背景、应用场景 | "决策树算法最早由Ross Quinlan在1986年提出..." |
-| **原理阐述** | 核心概念和工作原理的深入解释 | "决策树通过递归划分特征空间来进行分类..." |
-| **公式推导** | 数学公式的详细推导过程（LaTeX格式） | "$\text{Gini} = 1 - \sum_{i=1}^{n} p_i^2$" |
-| **代码示例** | 可运行的代码实现 | Python、Java等多语言支持 |
-| **要点总结** | 提炼关键知识点，便于快速复习 | "决策树的三个关键要素：..." |
-| **参考文献** | 相关的学术论文和学习资源 | 带标题、URL、来源的引用列表 |
-
-#### 使用方法
-1. 在PPT页面中选中一个或多个文本框
-2. 点击"扩充选中内容"按钮
-3. 系统显示实时进度（关键词提取→文献检索→内容生成）
-4. 查看生成的扩展内容，支持展开/折叠各部分
-5. 可点击参考文献查看原始来源
+#### 5.1 快速开始
 
 ---
 
-### 🔍 5. 多源文献检索
+##### 🚀 后端服务部署（Docker Compose）
 
-#### 功能说明
-智能检索4个权威学术数据库，为知识扩充提供高质量的参考文献。
+1. **克隆项目代码**
+    ```bash
+    git clone -b hy_version1 https://github.com/alei2024/ppt-extension-agent.git ppt-extension-agent-hy_version1
+    cd ppt-extension-agent-hy_version1
+    ```
 
-#### 支持的数据源
-| 数据源 | 特点 | 内容类型 |
-|--------|------|----------|
-| **Arxiv** | 计算机、物理、数学领域预印本 | 最新研究成果 |
-| **Semantic Scholar** | AI驱动的学术搜索引擎 | 跨学科论文 |
-| **Crossref** | DOI注册机构，覆盖全球期刊 | 正式发表论文 |
-| **OpenAlex** | 开放学术图谱 | 综合学术资源 |
+2. **配置环境变量**
+    ```bash
+    cp env.example .env
+    # 编辑 .env，填写 LLM_API_KEY 等必需参数
+    ```
 
-#### 智能检索特性
-- **LLM关键词提取**：自动从内容中提取3-5个核心关键词
-- **并行搜索**：多源同时检索，大幅提升速度
-- **期刊质量过滤**：优先展示高影响力期刊（IF>5）的论文
-- **智能源选择**：
-  - 有参考文件时：只搜索Arxiv（节省时间）
-  - 无参考文件时：搜索全部4个源（全面覆盖）
-- **超时保护**：每个源2秒超时，避免长时间等待
+3. **启动后端全套服务（API, Redis, Milvus, MinIO）**
+    ```bash
+    docker-compose up -d
+    ```
 
-#### 使用方法
-检索过程自动进行，无需手动操作。在扩充内容时：
-1. 系统自动提取关键词
-2. 并行检索所有数据源
-3. 过滤和排序结果
-4. 将高质量文献整合到扩展内容中
+4. **访问后端接口和文档**
+    - API 文档地址：[http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-### 📄 6. 参考文件上传
+##### 💻 前端应用启动（React + Vite）
 
-#### 功能说明
-上传自己的学习资料（Word/PDF），系统会优先使用这些材料来扩充PPT内容。
+1. **进入前端目录**
+    ```bash
+    cd frontend
+    ```
 
-#### 支持格式
-- **Word文档**：`.docx`、`.doc`
-- **PDF文档**：`.pdf`
+2. **安装前端依赖**
+    ```bash
+    npm install
+    ```
 
-#### 核心特性
-- **快速解析**：使用python-docx和PyMuPDF快速提取文本
-- **智能相关性判断**：自动判断参考文件与PPT主题的相关性
-- **优先级使用**：相关的参考文件内容会优先于在线检索结果
-- **文件管理**：支持查看、删除已上传的参考文件
+3. **本地开发模式启动**
+    ```bash
+    npm run dev
+    ```
 
-#### 使用方法
-1. 点击"上传参考文件"按钮
-2. 选择或拖拽Word/PDF文件
-3. 系统自动解析并判断相关性
-4. 在扩充内容时自动使用相关的参考文件
-5. 可在参考文件列表中管理已上传的文件
-
-#### 应用场景
-- 使用课程讲义扩充PPT
-- 使用论文扩充研究方向PPT
-- 使用技术文档扩充技术分享PPT
+4. **访问前端应用**
+    - 前端地址：[http://localhost:3000](http://localhost:3000)
+    - *默认已配置代理转发到后端 8000 端口*
 
 ---
 
-### 📊 7. 内容导出
 
-#### 功能说明
-将扩充后的内容导出为多种格式，方便学习、分享和打印。
+#### 5.2 项目目录结构
 
-#### 支持格式
-
-**Markdown格式**
-- ✅ 轻量级标记语言，易于编辑
-- ✅ 支持GitHub、Notion等平台
-- ✅ 保留公式（LaTeX格式）和代码高亮
-- ✅ 文件小，便于版本控制
-
-**PDF格式**
-- ✅ 通用格式，跨平台兼容
-- ✅ 支持中文字体（SimSun）
-- ✅ 公式渲染为图片
-- ✅ 适合打印和分享
-
-#### 内容包含
-- PPT原始内容
-- 扩充的知识点（背景、原理、公式、代码、总结）
-- 参考文献列表（带标题和链接）
-- 美观的排版和格式
-
-#### 使用方法
-1. 完成知识点扩充后，点击"导出内容"
-2. 选择导出格式（Markdown或PDF）
-3. 系统生成文件，自动下载
-4. 可直接打开查看或分享
-
----
-
-### 🎨 8. 现代化用户界面
-
-#### 功能说明
-采用现代化设计理念，提供流畅、美观、易用的交互体验。
-
-#### UI/UX特性
-
-**登录/注册页面优化**
-- 左右分栏设计，左侧展示品牌视觉，右侧聚焦表单
-- 宽屏适配，充分利用显示空间
-- 渐变背景，提升视觉吸引力
-
-**流畅动画交互**
-- 使用Framer Motion实现页面切换动画（Fade/Slide效果）
-- 组件加载微交互，提升用户体验
-- 按钮悬停、点击的视觉反馈
-
-**现代化组件库**
-- 使用Tailwind CSS重构所有基础组件
-- 统一的设计语言（颜色、间距、圆角）
-- 响应式设计，完美适配桌面、笔记本、平板
-
-**交互反馈优化**
-- 加载状态骨架屏（Skeleton）
-- 操作成功/失败的Toast提示
-- 表单验证实时反馈
-
-#### 原有界面特性
-
-#### 设计特点
-- **现代化设计**：使用Tailwind CSS，界面简洁美观
-- **响应式布局**：适配桌面、笔记本等设备
-- **流畅交互**：实时反馈，无卡顿
-- **信息清晰**：重点内容突出，层次分明
-
-#### 交互细节
-
-**进度提示**
-- 实时显示处理阶段（关键词提取→文献检索→内容生成）
-- 进度条动画，直观展示完成度
-- 处理完成后自动隐藏
-
-**内容展示**
-- 参考文献默认折叠，点击展开查看
-- 代码块语法高亮，便于阅读
-- 数学公式美观渲染（KaTeX）
-
-**文件管理**
-- 拖拽上传，操作便捷
-- 文件列表清晰展示
-- 支持删除无用文件
-
-**空状态处理**
-- 当页面无可选内容时显示友好提示
-- 引导用户操作下一步
-
----
-
-## API文档
-
-启动服务后，访问以下地址查看API文档：
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-### 主要API端点
-
-| 模块 | 端点 | 方法 | 说明 |
-|------|------|------|------|
-| **认证** | `/api/v1/auth/register` | POST | 用户注册 |
-| | `/api/v1/auth/login` | POST | 用户登录（JWT） |
-| | `/api/v1/users/me` | GET | 获取当前用户信息 |
-| **学习计划** | `/api/v1/plan/generate` | POST | 生成学习计划（LLM） |
-| | `/api/v1/plans` | GET | 获取用户所有计划 |
-| | `/api/v1/goals` | GET/POST | 获取/设置学习目标 |
-| **PPT处理** | `/api/v1/upload` | POST | 上传PPT文件 |
-| | `/api/v1/process-url` | POST | 从URL处理PPT |
-| | `/api/v1/expand` | POST | 扩充单个知识点（支持参考文件） |
-| | `/api/v1/search` | POST | 多源搜索 |
-| | `/api/v1/vector-search` | POST | 向量语义搜索 |
-| | `/api/v1/export` | POST | 导出内容（Markdown/PDF） |
-| | `/api/v1/download/{filename}` | GET | 下载导出文件 |
-| **参考文件** | `/api/v1/upload-reference` | POST | 上传参考文件（Word/PDF） |
-| | `/api/v1/reference/{file_id}` | GET | 获取参考文件信息 |
-| | `/api/v1/reference/{file_id}` | DELETE | 删除参考文件 |
-| **系统** | `/health` | GET | 健康检查 |
-
----
-
-## 核心功能流程
-
-### 1. PPT上传与解析
-```
-用户上传PPT → 保存文件 → python-pptx解析 → 提取文本/图片/结构 → 返回结构化数据
+```text
+ppt-extension-agent-hy_version1/
+├── agents/                   # LangGraph智能体工作流
+│   └── ppt_agent.py          # 智能体核心实现
+├── api/                      # 路由端点
+│   ├── auth_routes.py        # 用户认证路由
+│   ├── learning_routes.py    # 学习计划路由
+│   └── routes.py             # 主要业务路由
+├── app/                      # 应用配置与入口
+│   ├── config.py             # 配置管理
+│   └── main.py               # FastAPI应用入口
+├── frontend/                 # React前端项目
+│   └── src/
+│       ├── components/       # 核心组件库
+│       │   ├── Auth/              # 认证组件 (Login/Register)
+│       │   ├── CodeHighlighter/   # 代码高亮组件
+│       │   ├── Dashboard/         # 任务看板
+│       │   ├── ExpansionPanel/    # 扩展内容展示 (分栏视图/导出)
+│       │   ├── MathRenderer/      # 数学公式渲染
+│       │   ├── PPTFeature/        # PPT功能组件
+│       │   ├── PPTViewer/         # PPT结构化预览
+│       │   ├── ProgressBar/       # 进度条组件
+│       │   ├── ReferenceFileUpload/ # 参考文件上传
+│       │   ├── UploadArea/        # 文件上传区域
+│       │   └── UserProfile/       # 用户个人中心
+│       └── services/         # 前端API服务
+├── img/                      # README文档图片资源
+├── logs/                     # 运行日志
+├── output/                   # 生成结果输出
+├── services/                 # 业务逻辑服务
+│   ├── export_service.py     # 结果导出 (Markdown/PPTX)
+│   ├── image_recognizer.py   # 图片OCR与描述生成
+│   ├── knowledge_expander.py # 知识扩展生成器
+│   ├── parser.py             # PPT解析核心
+│   ├── reference_parser.py   # 参考文件解析与相关性判断
+│   ├── search_service.py     # 多源外部搜索
+│   └── user_service.py       # 用户管理
+├── uploads/                  # 文件上传目录
+├── utils/                    # 工具函数
+│   ├── auth.py               # 认证工具
+│   ├── llm_factory.py        # LLM工厂类
+│   ├── prompts.py            # Prompt模板
+│   └── vector_db.py          # 向量数据库客户端
+├── .dockerignore             # Docker忽略文件配置
+├── .gitignore                # Git忽略文件配置
+├── docker-compose.yml        # 多服务编排定义
+├── Dockerfile                # 后端容器构建文件
+├── env.example               # 环境变量示例
+├── README.md                 # 项目说明文档
+├── requirements.txt          # Python依赖列表
+└── 《智能体云原生开发》期末大作业.pdf  # PDF项目报告文档（与README.md内容一致）
 ```
 
-### 2. 参考文件上传与解析
-```
-用户上传参考文件（Word/PDF） → 保存文件 → 快速解析（python-docx/PyMuPDF） → 
-提取文本内容 → 判断与PPT内容相关性 → 存储解析结果 → 返回文件ID
-```
+#### 5.3 核心配置说明 (.env)
 
-### 3. 知识扩充（性能优化版）
-```
-选择知识点 → LLM提取关键词（3-5个核心关键词） → 检查是否有参考文件 → 
-  ├─ 有参考文件：只搜索Arxiv（并行，1-2秒）
-  └─ 无参考文件：搜索全部4个源（并行，2-3秒）
-→ 过滤高质量期刊 → 融合参考文件和搜索结果到Prompt（优先使用参考文件） → 
-调用LLM（DeepSeek-V3.2-Exp） → 生成扩展内容 → 整合参考文献 → 返回结果
-```
+```ini
+# 服务端配置
+APP_NAME="PPT Extension Agent"
+DEBUG=True
 
-### 4. 多维搜索（并行优化）
-```
-LLM提取关键词 → 并行搜索多个源（ThreadPoolExecutor） → 
-超时保护（每个源2秒） → 期刊质量过滤 → 整合结果 → 返回相关资源
-```
+# OpenAI / DeepSeek 配置 (通过 SiliconFlow 或 DeepSeek 官方)
+OPENAI_API_KEY=sk-xxxxxx
+OPENAI_BASE_URL=https://api.siliconflow.cn/v1
 
----
+# 向量数据库 (Milvus)
+MILVUS_HOST=milvus-standalone
+MILVUS_PORT=19530
 
-## 目录结构
+# Redis 配置
+REDIS_HOST=redis
+REDIS_PORT=6379
 
-```
-.
-├── app/                          # 主应用代码
-│   ├── main.py                   # FastAPI应用入口
-│   └── config.py                 # 配置管理
-├── api/                          # API路由定义
-│   ├── routes.py                 # PPT处理相关路由
-│   ├── auth_routes.py            # 认证相关路由
-│   └── learning_routes.py        # 学习计划相关路由
-├── services/                      # 业务服务层
-│   ├── parser.py                 # PPT解析服务
-│   ├── reference_parser.py       # 参考文件解析服务
-│   ├── knowledge_expander.py     # 知识扩充服务
-│   ├── search_service.py         # 多源搜索服务（并行优化）
-│   ├── user_service.py           # 用户管理服务
-│   └── export_service.py         # 导出服务
-├── utils/                        # 工具类
-│   ├── llm_factory.py           # LLM实例工厂
-│   ├── vector_db.py             # 向量数据库工具
-│   ├── auth.py                  # JWT认证工具
-│   └── prompts.py               # Prompt模板
-├── frontend/                     # 前端应用
-│   ├── src/
-│   │   ├── components/          # React组件
-│   │   │   ├── Auth/            # 登录注册组件
-│   │   │   ├── Dashboard/       # 仪表盘组件
-│   │   │   ├── UserProfile/     # 用户中心组件
-│   │   │   ├── PPTFeature/      # PPT功能组件
-│   │   │   └── ...              # 其他组件
-│   │   ├── services/            # 前端API服务封装
-│   │   ├── App.tsx             # 主应用组件
-│   │   └── main.tsx            # 应用入口
-│   └── package.json             # 前端依赖
-├── output/                       # 输出文件目录
-│   └── users.json               # 用户数据文件
-├── Dockerfile                   # Docker构建文件
-├── docker-compose.yml           # Docker Compose配置
-├── requirements.txt             # Python依赖
-└── README.md                    # 项目说明文档
+# 对象存储 (MinIO)
+MINIO_ENDPOINT=minio:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
 ```
 
----
+### 六、项目展示截图
 
-## 性能优化说明
+#### **6.1 用户注册登录页面**
 
-### 已实现的优化
-1. **LLM关键词提取**：使用LLM智能提取关键词，而非简单截取文本，提升搜索准确性
-2. **并行搜索**：使用ThreadPoolExecutor并行执行所有搜索源，从串行5-10秒优化到并行1-3秒
-3. **智能源选择**：有参考文件时只搜索1个源（Arxiv），无参考文件时搜索4个源，节省40-60%搜索时间
-4. **超时保护**：每个搜索源2秒超时，避免单个源阻塞整体流程
-5. **快速验证模式**：优化验证流程，减少LLM调用次数
-6. **内容智能过滤**：自动过滤纯数字、人名等无意义内容，提升用户体验
-7. **Wikipedia禁用**：因Wikipedia搜索太慢且容易失败，已完全禁用
+![用户注册界面](img/注册.png)
 
-### 性能提升
-- **有参考文件时**：总耗时从10-20秒降至6-10秒（提升约50%）
-- **无参考文件时**：总耗时从10-20秒降至8-12秒（提升约40%）
-- **搜索阶段**：从5-10秒降至1-3秒（提升约70-80%）
-- **关键词提取**：使用LLM提取关键词，虽然增加约1-2秒，但搜索准确性显著提升
+#### 6.2 PPT 上传页面及上传结果示例
 
----
+##### 6.2.1 PPT 上传界面
+![PPT上传界面](img/上传PPT.png)
 
-## 技术说明
+##### 6.2.2 PPT 解析结果
+![PPT解析结果](img/PPT解析.png)
 
-### 大语言模型配置
-- **模型**: deepseek-ai/DeepSeek-V3.2-Exp
-- **API服务**: SiliconFlow (https://api.siliconflow.cn/v1)
-- **温度参数**: 0.7
-- **最大Token**: 4096
+##### 6.2.3 PPT 扩展结果展示
+![PPT扩展结果展示](img/PPT扩展.png)
 
-### LLM Agent设计
-- **工具链**：PPT解析、知识扩充、验证、多源搜索、向量检索
-- **工作流**：输入PPT → 解析结构 → 提取知识点 → 多源搜索 → LLM生成扩展 → 验证准确性 → 输出结果
-- **容错机制**：事实验证、逻辑检查、异常处理
+#### 6.3 用户设定学习目标及个性化计划生成
 
----
+![学习仪表盘](img/学习仪表盘.png)
 
-## 功能检查清单
+#### 6.4 用户个人主页及历史学习计划
 
-| 功能分类 | 功能 | 状态 | 说明 |
-|----------|------|------|------|
-| **用户系统** | 用户注册/登录 | ✅ | JWT token认证，密码加密存储 |
-| | 权限管理 | ✅ | 基于token的API访问控制 |
-| | 个人资料管理 | ✅ | 用户信息、学习目标设置 |
-| **学习计划** | 计划生成 | ✅ | LLM生成个性化学习计划，包含周目标和每日任务 |
-| | 计划管理 | ✅ | 查看、执行和归档历史学习计划 |
-| | 进度追踪 | ✅ | Dashboard展示学习进度 |
-| **PPT处理** | 语义解析 | ✅ | 使用python-pptx解析PPT层级结构，智能提取标题、表格、备注页 |
-| | 内容智能过滤 | ✅ | 自动过滤纯数字、人名、页码等无意义内容 |
-| | 知识扩充 | ✅ | LLM驱动，优先使用参考文件 |
-| **文献检索** | LLM关键词提取 | ✅ | 使用LLM智能提取3-5个核心关键词 |
-| | 多维搜索 | ✅ | 整合4个外部资源，并行执行，带超时保护 |
-| | 期刊过滤 | ✅ | 自动过滤并优先展示高质量期刊论文 |
-| **参考资料** | 文件上传 | ✅ | 支持Word/PDF上传，快速解析 |
-| | 相关性判断 | ✅ | 智能判断参考文件与PPT主题的相关性 |
-| **UI/UX** | 现代化设计 | ✅ | Tailwind CSS，响应式布局，流畅动画 |
-| | 数据可视化 | ✅ | 使用Recharts展示学习进度 |
-| | 实时进度显示 | ✅ | 显示当前处理阶段，分段进度条动画 |
-| | 参考文献显示 | ✅ | 美观的参考文献卡片展示，支持折叠/展开 |
-| **技术架构** | 向量数据库 | ✅ | 使用Milvus进行语义检索 |
-| | Docker部署 | ✅ | 完整的Dockerfile和docker-compose.yml |
-| | Prompt工程 | ✅ | 结构化Prompt模板，支持参考文件优先 |
-| | Check Layer | ✅ | 验证机制防止LLM幻觉 |
-| **内容输出** | 导出功能 | ✅ | 支持Markdown和PDF导出 |
-| | 公式渲染 | ✅ | 使用KaTeX渲染数学公式 |
-| | 代码高亮 | ✅ | 使用Prism.js高亮代码 |
-
----
-
-## 常见问题
-
-### 问题1：端口被占用
-```bash
-# 检查端口占用
-lsof -i :8000  # Mac/Linux
-netstat -ano | findstr :8000  # Windows
-
-# 解决方法：修改docker-compose.yml中的端口映射
-```
-
-### 问题2：Docker服务启动失败
-```bash
-# 查看详细错误日志
-docker-compose logs
-
-# 重启Docker服务
-sudo systemctl restart docker  # Linux
-```
-
-### 问题3：Milvus连接失败
-```bash
-# 检查Milvus服务状态
-docker-compose ps milvus-standalone
-
-# 查看Milvus日志
-docker-compose logs milvus-standalone
-```
-
-### 问题4：前端启动失败
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### 问题5：容器名称冲突
-```bash
-# 停止并删除所有相关容器、网络和卷
-docker-compose down -v
-
-# 如果还有残留，手动删除
-docker rm -f ppt-agent-minio ppt-agent-etcd ppt-agent-redis ppt-agent-milvus ppt-extension-agent
-
-# 然后重新启动
-docker-compose up -d --build
-```
----
-
-## 使用建议
-
-### 💡 最佳实践
-
-1. **上传高质量PPT**：内容越清晰，解析效果越好
-2. **选择核心内容**：选择最需要扩充的知识点，避免无关内容
-3. **使用参考文件**：提前准备相关的学习资料，提升扩充质量
-4. **合理使用搜索**：对于专业术语，系统会自动检索权威文献
-5. **导出保存**：及时导出扩充内容，方便后续学习
-
-### ⚠️ 注意事项
-
-- PPT文件大小建议不超过50MB
-- 参考文件建议使用中文或英文，避免其他语言
-- 网络环境需要稳定，确保可以访问学术数据库
-- 扩充内容依赖LLM质量，可能存在少量不准确情况
-- 导出的PDF文件可能较大，建议使用Markdown格式
-
----
-
-## 技术支持
-
-如有问题，请通过GitHub Issues反馈：https://github.com/alei2024/ppt-extension-agent
-
----
+![用户个人主页](img/用户个人中心.png)
